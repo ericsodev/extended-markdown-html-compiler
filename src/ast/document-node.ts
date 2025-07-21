@@ -3,9 +3,9 @@ import type { SectionNode } from "./section-node";
 
 export class DocumentNode implements ASTNode {
   readonly kind: ASTNodeType = "text";
-  private sections: SectionNode[];
+  private body: SectionNode;
 
-  constructor(sections: SectionNode[]) {
-    this.sections = sections;
+  constructor(body: SectionNode) {
+    this.body = body;
   }
 }

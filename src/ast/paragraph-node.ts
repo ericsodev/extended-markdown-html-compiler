@@ -1,12 +1,11 @@
-import type { BoldNode } from "./bold-node";
 import type { ASTNode, ASTNodeType } from "./node";
-import type { TextNode } from "./text-node";
+import type { TextLineNode } from "./text-line-node";
 
 export class ParagraphNode implements ASTNode {
   readonly kind: ASTNodeType = "paragraph";
-  private text: (TextNode | BoldNode)[];
+  private text: TextLineNode[];
 
-  constructor(text: (TextNode | BoldNode)[]) {
+  constructor(text: TextLineNode[]) {
     this.text = text;
   }
 }
