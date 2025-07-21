@@ -1,4 +1,5 @@
 import { Parser } from "../src/parser/parser";
+import { Tokenizer } from "../src/parser/lexer";
 import { DocumentNode } from "../src/ast/document-node";
 import { SectionNode } from "../src/ast/section-node";
 import { ParagraphNode } from "../src/ast/paragraph-node";
@@ -229,5 +230,320 @@ describe("Test parsing document", () => {
     const result = parser.parseDocument();
 
     expect(result).toBeInstanceOf(DocumentNode);
+  });
+});
+
+describe("Test lexer and parser", () => {
+  it("Should correctly tokenizer and parse for simple text", () => {
+    const input = "Hello world";
+    const tokenizer = new Tokenizer(input);
+    const tokens = tokenizer.tokenize();
+    const parser = new Parser(tokens);
+
+    const result = parser.parseDocument();
+
+    expect(result).toBeInstanceOf(DocumentNode);
+    expect(result.kind).toBe("text");
+
+    // Access the body to verify structure
+    const body = (result as any).body;
+    expect(body).toBeInstanceOf(SectionNode);
+    expect(body.kind).toBe("section");
+
+    const sections = (body as any).sections;
+    expect(sections).toHaveLength(1);
+    expect(sections[0]).toBeInstanceOf(ParagraphNode);
+
+    const textLines = (sections[0] as any).text;
+    expect(textLines).toHaveLength(1);
+    expect(textLines[0]).toBeInstanceOf(TextLineNode);
+
+    const textNodes = (textLines[0] as any).text;
+    expect(textNodes).toHaveLength(1);
+    expect(textNodes[0]).toBeInstanceOf(TextNode);
+    expect(textNodes[0]).toHaveProperty("text", "Hello world");
+  });
+
+  it("Should correctly tokenizer and parse for simple heading", () => {
+    const input = "# My Heading";
+    const tokenizer = new Tokenizer(input);
+    const tokens = tokenizer.tokenize();
+    const parser = new Parser(tokens);
+
+    const result = parser.parseDocument();
+
+    expect(result).toBeInstanceOf(DocumentNode);
+
+    const body = (result as any).body;
+    expect(body).toBeInstanceOf(SectionNode);
+
+    const sections = (body as any).sections;
+    expect(sections).toHaveLength(1);
+    expect(sections[0]).toBeInstanceOf(HeadingNode);
+    expect(sections[0].kind).toBe("heading");
+    expect(sections[0].level).toBe(1);
+
+    const headingText = sections[0].text;
+    expect(headingText).toBeInstanceOf(TextLineNode);
+
+    const textNodes = (headingText as any).text;
+    expect(textNodes).toHaveLength(1);
+    expect(textNodes[0]).toBeInstanceOf(TextNode);
+    expect(textNodes[0]).toHaveProperty("text", "My Heading");
+  });
+
+  it("Should correctly tokenizer and parse for text with bold", () => {
+    const input = "This is *bold* text";
+    const tokenizer = new Tokenizer(input);
+    const tokens = tokenizer.tokenize();
+    const parser = new Parser(tokens);
+
+    const result = parser.parseDocument();
+
+    expect(result).toBeInstanceOf(DocumentNode);
+
+    const body = (result as any).body;
+    const sections = (body as any).sections;
+    expect(sections).toHaveLength(1);
+    expect(sections[0]).toBeInstanceOf(ParagraphNode);
+
+    const textLines = (sections[0] as any).text;
+    expect(textLines).toHaveLength(1);
+
+    const textNodes = (textLines[0] as any).text;
+    expect(textNodes).toHaveLength(3); // "This is ", BoldNode("bold"), " text"
+    expect(textNodes[0]).toBeInstanceOf(TextNode);
+    expect(textNodes[1]).toBeInstanceOf(BoldNode);
+    expect(textNodes[1].kind).toBe("bold");
+    expect(textNodes[2]).toBeInstanceOf(TextNode);
+  });
+
+  it("Should correctly tokenizer and parse for multiple headings", () => {
+    const input = "# Level 1\n## Level 2\n### Level 3";
+    const tokenizer = new Tokenizer(input);
+    const tokens = tokenizer.tokenize();
+    const parser = new Parser(tokens);
+
+    const result = parser.parseDocument();
+
+    expect(result).toBeInstanceOf(DocumentNode);
+
+    const body = (result as any).body;
+    const sections = (body as any).sections;
+    expect(sections).toHaveLength(3);
+
+    // Check first heading
+    expect(sections[0]).toBeInstanceOf(HeadingNode);
+    expect(sections[0].level).toBe(1);
+
+    // Check second heading
+    expect(sections[1]).toBeInstanceOf(HeadingNode);
+    expect(sections[1].level).toBe(2);
+
+    // Check third heading
+    expect(sections[2]).toBeInstanceOf(HeadingNode);
+    expect(sections[2].level).toBe(3);
+  });
+
+  it("Should correctly tokenizer and parse for heading and paragraph", () => {
+    const input = "# Title\nThis is a paragraph.";
+    const tokenizer = new Tokenizer(input);
+    const tokens = tokenizer.tokenize();
+    const parser = new Parser(tokens);
+
+    const result = parser.parseDocument();
+
+    expect(result).toBeInstanceOf(DocumentNode);
+
+    const body = (result as any).body;
+    const sections = (body as any).sections;
+    expect(sections).toHaveLength(2);
+
+    // Check heading
+    expect(sections[0]).toBeInstanceOf(HeadingNode);
+    expect(sections[0].level).toBe(1);
+
+    // Check paragraph
+    expect(sections[1]).toBeInstanceOf(ParagraphNode);
+    const textLines = (sections[1] as any).text;
+    expect(textLines).toHaveLength(1);
+
+    const textNodes = (textLines[0] as any).text;
+    expect(textNodes.length).toBeGreaterThan(0);
+    expect(textNodes[0]).toBeInstanceOf(TextNode);
+  });
+
+  it("Should correctly tokenizer and parse for complex markdown", () => {
+    const input =
+      "# Main Title\nThis is a paragraph with *bold* text.\n## Subtitle\nAnother paragraph here.";
+    const tokenizer = new Tokenizer(input);
+    const tokens = tokenizer.tokenize();
+    const parser = new Parser(tokens);
+
+    const result = parser.parseDocument();
+
+    expect(result).toBeInstanceOf(DocumentNode);
+
+    const body = (result as any).body;
+    const sections = (body as any).sections;
+    expect(sections).toHaveLength(4); // heading, paragraph, heading, paragraph
+
+    // Check main title
+    expect(sections[0]).toBeInstanceOf(HeadingNode);
+    expect(sections[0].level).toBe(1);
+
+    // Check first paragraph with bold text
+    expect(sections[1]).toBeInstanceOf(ParagraphNode);
+    const firstParagraphText = (sections[1] as any).text[0].text;
+    const hasBoldNode = firstParagraphText.some(
+      (node: any) => node instanceof BoldNode,
+    );
+    expect(hasBoldNode).toBe(true);
+
+    // Check subtitle
+    expect(sections[2]).toBeInstanceOf(HeadingNode);
+    expect(sections[2].level).toBe(2);
+
+    // Check second paragraph
+    expect(sections[3]).toBeInstanceOf(ParagraphNode);
+  });
+
+  it("Should correctly tokenizer and parse for multiple bold sections", () => {
+    const input = "Text with *first bold* and *second bold* sections.";
+    const tokenizer = new Tokenizer(input);
+    const tokens = tokenizer.tokenize();
+    const parser = new Parser(tokens);
+
+    const result = parser.parseDocument();
+
+    expect(result).toBeInstanceOf(DocumentNode);
+
+    const body = (result as any).body;
+    const sections = (body as any).sections;
+    expect(sections).toHaveLength(1);
+
+    const textNodes = (sections[0] as any).text[0].text;
+    const boldNodes = textNodes.filter((node: any) => node instanceof BoldNode);
+    expect(boldNodes).toHaveLength(2);
+    expect(boldNodes[0].kind).toBe("bold");
+    expect(boldNodes[1].kind).toBe("bold");
+  });
+
+  it("Should correctly tokenizer and parse for unclosed bold asterisk", () => {
+    const input = "Text with *unclosed asterisk at end";
+    const tokenizer = new Tokenizer(input);
+    const tokens = tokenizer.tokenize();
+    const parser = new Parser(tokens);
+
+    const result = parser.parseDocument();
+
+    expect(result).toBeInstanceOf(DocumentNode);
+
+    const body = (result as any).body;
+    const sections = (body as any).sections;
+    expect(sections).toHaveLength(1);
+
+    const textNodes = (sections[0] as any).text[0].text;
+    // Should all be TextNodes since asterisk is unclosed
+    const allTextNodes = textNodes.every(
+      (node: any) => node instanceof TextNode,
+    );
+    expect(allTextNodes).toBe(true);
+
+    // Should contain the asterisk as part of text
+    const combinedText = textNodes
+      .map((node: any) => (node as any).text || node.literal)
+      .join("");
+    expect(combinedText).toContain("*");
+  });
+
+  it("Should correctly tokenizer and parse with empty lines", () => {
+    const input = "# Title\n\nParagraph after empty line.";
+    const tokenizer = new Tokenizer(input);
+    const tokens = tokenizer.tokenize();
+    const parser = new Parser(tokens);
+
+    const result = parser.parseDocument();
+
+    expect(result).toBeInstanceOf(DocumentNode);
+
+    const body = (result as any).body;
+    const sections = (body as any).sections;
+    expect(sections).toHaveLength(2); // heading and paragraph (empty line should be skipped)
+
+    expect(sections[0]).toBeInstanceOf(HeadingNode);
+    expect(sections[1]).toBeInstanceOf(ParagraphNode);
+  });
+
+  it("Should correctly tokenizer and parse for multiline document", () => {
+    const input = `# Introduction
+This is the first paragraph with *emphasis*.
+
+## Section One
+Another paragraph here.
+
+### Subsection
+Final paragraph with more *bold text* here.`;
+    const tokenizer = new Tokenizer(input);
+    const tokens = tokenizer.tokenize();
+    const parser = new Parser(tokens);
+
+    const result = parser.parseDocument();
+
+    expect(result).toBeInstanceOf(DocumentNode);
+
+    const body = (result as any).body;
+    const sections = (body as any).sections;
+    expect(sections.length).toBeGreaterThan(5); // At least 6 sections (3 headings, 3 paragraphs)
+
+    // Check heading levels
+    const headings = sections.filter(
+      (section: any) => section instanceof HeadingNode,
+    );
+    expect(headings).toHaveLength(3);
+    expect(headings[0].level).toBe(1);
+    expect(headings[1].level).toBe(2);
+    expect(headings[2].level).toBe(3);
+
+    // Check that there are paragraphs with bold text
+    const paragraphs = sections.filter(
+      (section: any) => section instanceof ParagraphNode,
+    );
+    expect(paragraphs.length).toBeGreaterThan(0);
+
+    const hasBoldInAnyParagraph = paragraphs.some((paragraph: any) => {
+      const textNodes = (paragraph as any).text[0].text;
+      return textNodes.some((node: any) => node instanceof BoldNode);
+    });
+    expect(hasBoldInAnyParagraph).toBe(true);
+  });
+
+  it("Should handle single asterisk without pair", () => {
+    const input = "Start * middle end";
+    const tokenizer = new Tokenizer(input);
+    const tokens = tokenizer.tokenize();
+    const parser = new Parser(tokens);
+
+    const result = parser.parseDocument();
+
+    expect(result).toBeInstanceOf(DocumentNode);
+
+    const body = (result as any).body;
+    const sections = (body as any).sections;
+    expect(sections).toHaveLength(1);
+
+    const textNodes = (sections[0] as any).text[0].text;
+    // All should be TextNodes since asterisks don't form pairs
+    const allTextNodes = textNodes.every(
+      (node: any) => node instanceof TextNode,
+    );
+    expect(allTextNodes).toBe(true);
+
+    // Should contain asterisks in the text content
+    const hasAsterisks = textNodes.some((node: any) => {
+      const nodeText = (node as any).text;
+      return nodeText && nodeText.includes("*");
+    });
+    expect(hasAsterisks).toBe(true);
   });
 });
