@@ -1,10 +1,14 @@
 import type { ASTNode, ASTNodeType } from "./node";
 
 export class BoldNode implements ASTNode {
-  readonly kind: ASTNodeType = "bold";
-  private text: string;
+  readonly kind = "bold";
+  readonly #text: string;
 
   constructor(text: string) {
-    this.text = text;
+    this.#text = text;
+  }
+
+  get text(): string {
+    return this.#text;
   }
 }
