@@ -26,10 +26,18 @@ export class Parser {
         this.consumeToken();
         continue;
       }
-      console.log("doc");
 
-      if (currentToken.kind === "hash" && this.peekToken()?.kind === "space") {
-        sections.push(this.parseHeadingNode());
+      const originalPosition = this.currentPosition;
+      if (currentToken.kind === "hash") {
+        const hashes = this.consumeHashes();
+        if (this.currentToken().kind === "space" && hashes.length < 7) {
+          // is a heading
+          sections.push(this.parseHeadingNode(hashes));
+        } else {
+          // is just regular text, backtrack
+          this.currentPosition = originalPosition;
+          sections.push(this.parseParagraph());
+        }
       } else {
         sections.push(this.parseParagraph());
       }
@@ -37,15 +45,20 @@ export class Parser {
 
     return new DocumentNode(new SectionNode(sections));
   }
-  private parseHeadingNode(): HeadingNode {
-    let level = 0;
-    do {
-      level++;
-      this.consumeToken();
-    } while (this.currentToken().kind === "hash");
 
-    if (this.currentToken().kind !== "space") {
-      throw new Error("Expected space token after hash when parsing heading");
+  private consumeHashes(): string {
+    let result = "";
+    while (this.currentToken().kind === "hash") {
+      this.consumeToken();
+      result += "#";
+    }
+    return result;
+  }
+
+  private parseHeadingNode(hashes: string): HeadingNode {
+    let level = hashes.length;
+    if (this.consumeToken().kind !== "space") {
+      throw new Error("Expected space after hash while parsing heading node.");
     }
 
     const text = this.parseLine();
@@ -71,7 +84,6 @@ export class Parser {
       if (this.currentToken().kind === "asterisk") {
         this.consumeToken();
         const parsedText = this.parseText();
-        console.log("parsed", parsedText);
         if (this.currentToken().kind === "asterisk") {
           this.consumeToken();
           // Is bold node
