@@ -4,7 +4,9 @@ export type ASTNodeType =
   | "paragraph"
   | "bold"
   | "text"
-  | "heading";
+  | "heading"
+  | "title"
+  | "uri";
 
 export interface ASTNode {
   readonly kind: ASTNodeType;
