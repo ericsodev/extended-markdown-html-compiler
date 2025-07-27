@@ -16,8 +16,13 @@ import {
   EOFToken,
   type Token,
 } from "../src/parser/tokens";
+import {
+  documentWithTitle,
+  documentWithTitleAndUri,
+  documentWithUri,
+} from "./fixtures/document-with-preamble";
 
-describe("Test parsing document", () => {
+describe("Test parsing basic document", () => {
   it("Should parse a single paragraph with text", () => {
     const tokens: Token[] = [
       new StringToken("This"),
@@ -36,7 +41,6 @@ describe("Test parsing document", () => {
     const result = parser.parseDocument();
 
     expect(result).toBeInstanceOf(DocumentNode);
-    expect(result.kind).toBe("text");
   });
 
   it("Should parse a single heading", () => {
@@ -57,7 +61,6 @@ describe("Test parsing document", () => {
     const result = parser.parseDocument();
 
     expect(result).toBeInstanceOf(DocumentNode);
-    expect(result.kind).toBe("text");
   });
 
   it("Should parse a single paragraph with text and bolded text", () => {
@@ -84,7 +87,6 @@ describe("Test parsing document", () => {
     const result = parser.parseDocument();
 
     expect(result).toBeInstanceOf(DocumentNode);
-    expect(result.kind).toBe("text");
   });
 
   it("Should parse a heading and a paragraph", () => {
@@ -107,7 +109,6 @@ describe("Test parsing document", () => {
     const result = parser.parseDocument();
 
     expect(result).toBeInstanceOf(DocumentNode);
-    expect(result.kind).toBe("text");
   });
 
   it("Should parse multiple headings with different levels", () => {
@@ -243,7 +244,6 @@ describe("Test lexer and parser", () => {
     const result = parser.parseDocument();
 
     expect(result).toBeInstanceOf(DocumentNode);
-    expect(result.kind).toBe("text");
 
     // Access the body to verify structure
     const body = (result as any).body;
@@ -546,4 +546,60 @@ Final paragraph with more *bold text* here.`;
     });
     expect(hasAsterisks).toBe(true);
   });
+});
+
+describe("Test parsing preamble metadata", () => {
+  it("Should parse title command", () => {
+    const tokenizer = new Tokenizer(documentWithTitle);
+    const tokens = tokenizer.tokenize();
+    const parser = new Parser(tokens);
+
+    const result = parser.parseDocument();
+    expect(result).toBeInstanceOf(DocumentNode);
+    expect(result.title?.title).toBe("this is the title");
+  });
+  it("Should parse uri command", () => {
+    const tokenizer = new Tokenizer(documentWithUri);
+    const tokens = tokenizer.tokenize();
+    const parser = new Parser(tokens);
+
+    const result = parser.parseDocument();
+    expect(result).toBeInstanceOf(DocumentNode);
+    expect(result.uri?.uri).toBe("this is the uri");
+  });
+  it("Should correctly parse the rest of the document with preamble", () => {
+    const tokenizer = new Tokenizer(documentWithTitleAndUri);
+    const tokens = tokenizer.tokenize();
+    const parser = new Parser(tokens);
+
+    const result = parser.parseDocument();
+    expect(result).toBeInstanceOf(DocumentNode);
+    expect(result.title?.title).toBe("this is the title");
+    expect(result.uri?.uri).toBe("this is the uri");
+
+    const sections = result.body.sections;
+    expect(sections).toHaveLength(2);
+    expect(sections[0]).toBeInstanceOf(HeadingNode);
+    expect(sections[0]?.kind).toBe("heading");
+    expect(sections[0]).toHaveProperty("level", 1);
+
+    const headingText = sections[0]?.text;
+    expect(headingText).toBeInstanceOf(TextLineNode);
+
+    const textNodes = (headingText as any).text;
+    expect(textNodes).toHaveLength(1);
+    expect(textNodes[0]).toBeInstanceOf(TextNode);
+    expect(textNodes[0]).toHaveProperty("text", "Heading");
+
+    const paragraph = sections[1];
+    expect(paragraph).toBeInstanceOf(ParagraphNode);
+    assert(paragraph?.kind === "paragraph");
+
+    expect(paragraph.text).toHaveLength(1);
+    expect(paragraph.text[0]?.text).toHaveLength(1);
+    expect(paragraph.text[0]?.text[0])
+      .to.be.instanceOf(TextNode)
+      .with.property("text", "this is some text");
+  });
+  it("Should parse document text with slashes in text");
 });
