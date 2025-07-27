@@ -1,6 +1,6 @@
 {
   "$schema": "https://www.schemastore.org/package.json",
-  "name": "ts-md-html",
+  "name": "extended-markdown-html-compiler",
   "module": "index.ts",
   "type": "module",
   "private": true,
