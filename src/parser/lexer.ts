@@ -5,10 +5,11 @@ import {
   LineBreakToken,
   SpaceToken,
   StringToken,
+  SlashToken,
   type Token,
 } from "./tokens";
 
-const SPECIAL_TOKENS = ["\n", "*", "#", " "];
+const SPECIAL_TOKENS = ["\n", "*", "#", " ", "/"];
 
 export class Tokenizer {
   private readonly input: string;
@@ -43,6 +44,11 @@ export class Tokenizer {
         }
         case " ": {
           tokens.push(new SpaceToken());
+          this.currentPostion++;
+          break;
+        }
+        case "/": {
+          tokens.push(new SlashToken());
           this.currentPostion++;
           break;
         }

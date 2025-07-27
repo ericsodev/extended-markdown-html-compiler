@@ -5,6 +5,8 @@ import type { ParagraphNode } from "../ast/paragraph-node";
 import type { SectionNode } from "../ast/section-node";
 import type { TextLineNode } from "../ast/text-line-node";
 import type { TextNode } from "../ast/text-node";
+import type { TitleNode } from "../ast/title-node";
+import type { UriNode } from "../ast/uri-node";
 
 export class HTMLCompiler {
   #html: string;
@@ -35,13 +37,27 @@ export class HTMLCompiler {
   }
 
   private visitDocumentNode(documentNode: DocumentNode): void {
-    this.append("<html>");
-    this.append("<body>");
+    this.appendOpeningTag("html");
+    this.appendOpeningTag("head");
+    if (documentNode.title) {
+      this.visitTitleNode(documentNode.title);
+    }
+
+    this.appendClosingTag("head");
+
+    this.appendOpeningTag("body");
     this.visitSectionNode(documentNode.body);
 
-    this.append("</body>");
-    this.append("</html>");
+    this.appendClosingTag("body");
+    this.appendClosingTag("html");
   }
+
+  private visitTitleNode(titleNode: TitleNode): void {
+    this.appendOpeningTag("title");
+    this.append(titleNode.title);
+    this.appendClosingTag("title");
+  }
+
   private visitSectionNode(sectionNode: SectionNode): void {
     for (const section of sectionNode.sections) {
       if (section.kind === "paragraph") {

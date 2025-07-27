@@ -1,4 +1,11 @@
-type TokenType = "hash" | "string" | "asterisk" | "new line" | "space" | "eof";
+type TokenType =
+  | "hash"
+  | "string"
+  | "asterisk"
+  | "new line"
+  | "space"
+  | "eof"
+  | "slash";
 
 export interface Token {
   kind: TokenType;
@@ -36,6 +43,13 @@ export class SpaceToken {
   readonly kind = "space";
   get literal() {
     return " ";
+  }
+}
+
+export class SlashToken {
+  readonly kind = "slash";
+  get literal() {
+    return "/";
   }
 }
 
