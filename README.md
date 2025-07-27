@@ -1,6 +1,6 @@
 # ts-md-html
 
-This is a proof-of-concept for generating HTML files using an extended markdown syntax to create linkable documents.
+This is a proof of concept for generating HTML files using an extended markdown syntax to create linkable documents.
 
 
 ## Usage

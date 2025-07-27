@@ -17,6 +17,7 @@ import {
   type Token,
 } from "../src/parser/tokens";
 import {
+  documentWithSlashes,
   documentWithTitle,
   documentWithTitleAndUri,
   documentWithUri,
@@ -601,5 +602,43 @@ describe("Test parsing preamble metadata", () => {
       .to.be.instanceOf(TextNode)
       .with.property("text", "this is some text");
   });
-  it("Should parse document text with slashes in text");
+  it("Should parse document text with slashes in text", () => {
+    const tokenizer = new Tokenizer(documentWithSlashes);
+    const tokens = tokenizer.tokenize();
+    const parser = new Parser(tokens);
+
+    const result = parser.parseDocument();
+
+    let paragraph = result.body.sections[0];
+    expect(paragraph).toBeInstanceOf(ParagraphNode);
+    assert(paragraph?.kind === "paragraph");
+
+    expect(paragraph.text).toHaveLength(1);
+    expect(paragraph.text[0]?.text[0])
+      .to.be.instanceOf(TextNode)
+      .with.property("text", "//title this is escaped as regular text");
+
+    paragraph = result.body.sections[2];
+    expect(paragraph).toBeInstanceOf(ParagraphNode);
+    assert(paragraph?.kind === "paragraph");
+
+    expect(paragraph.text).toHaveLength(1);
+    expect(paragraph.text[0]?.text[0])
+      .to.be.instanceOf(TextNode)
+      .with.property("text", "this is some text with a /");
+
+    paragraph = result.body.sections[3];
+    expect(paragraph).toBeInstanceOf(ParagraphNode);
+    assert(paragraph?.kind === "paragraph");
+    expect(paragraph.text[0]?.text[0])
+      .to.be.instanceOf(TextNode)
+      .with.property("text", "/title this should be treated as regular text");
+
+    paragraph = result.body.sections[4];
+    expect(paragraph).toBeInstanceOf(ParagraphNode);
+    assert(paragraph?.kind === "paragraph");
+    expect(paragraph.text[0]?.text[0])
+      .to.be.instanceOf(TextNode)
+      .with.property("text", "/uri this should be treated as regular text");
+  });
 });
